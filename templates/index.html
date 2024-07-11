@@ -1,34 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sentiment Analysis</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-</head>
-<body>
-<br>
-    <div class="container">
-        <h3>Predicción de Sentimientos - GROUPO 3</h3>
-        <form action="/predict" method="post" class="pt-2 pb-2">
-            <div class="row">
-                <div class="col">
-                    <div class="form-floating">
-                        <textarea class="form-control" name="sentiment" placeholder="Example: I am happy" id="sentiment" required></textarea>
-                        <label for="sentiment">Ingrese un sentimiento</label>
-                    </div>
-                </div>
-                <div class="col">
-                     <button type="submit" class="btn btn-primary">Analizar</button>
-                </div>
-            </div>
-        </form>
 
-        {% if prediction_text %}
-            <h5>{{ prediction_text }}</h5>
-        {% endif %}
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentiment Analysis</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+<style>
+  body {
+    background-image: url('https://identicole.pe/wp-content/uploads/2023/06/Cuanto-cuesta-la-mensualidad-en-la-UPN-1000x642.jpeg');
+  }
+  #content {
+    font-size: 20px !important;
+  }
+</style>
+<body>
+  <br>
+  <div class="container text-center" style="margin: auto !important;">
+    <div class="text-center bg-warning p-4 border rounded" style="width: 50%; margin: auto; height: 400px;opacity: 0.8;">
+      <div class="row">
+        <h3>Analisis de Sentimientos - GRUPO 3</h3>
+      </div>
+      <div class="row"></div>
+      <div class="row h-75">
+        <div class="col justify-content">
+          <div id="content"></div>
+          <button type="button" class="btn btn-primary m-5" data-bs-toggle="modal" data-bs-target="#exampleModal"
+          data-bs-whatever="@mdo" onclick="newSentiment()">Nuevo Analisis</button>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <div class="modal" id="exampleModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="exampleModalLabel">Analisis de sentimientos</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="mb-3">
+              <label for="recipient-name" class="col-form-label">Indicanos, ¿ cual es tu nombre?</label>
+              <input type="text" class="form-control" id="fullname">
+            </div>
+            <div class="mb-3">
+              <label for="message-text" class="col-form-label">Cuentanos, ¿como te sientes?</label>
+              <textarea type="text" class="form-control" id="message"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="analyzeSentiment()">Analizar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script type="text/javascript">
+  $(document).ready(function () {
+    $("#exampleModal").modal('show');
+  });
+
+  const newSentiment = () => {
+    $('#content').empty();
+    $('#message').val('');
+  }
+
+  const analyzeSentiment = () => {
+    $("#exampleModal").modal('hide');
+
+    const name = $('#fullname').val();
+    const sentiment = $('#message').val();
+    console.log({ name, sentiment });
+
+    $.ajax({
+      url: 'http://127.0.0.1:5000/sentiment-analysis',
+      method: 'POST',
+      data: JSON.stringify({
+        'sentiment': sentiment
+      }),
+      contentType: 'application/json',
+      dataType: 'json',
+      success: function (response) {
+        console.log(response);
+        let message = '';
+        if (response.sentiment == 'alegría')
+          message = 'Seguir siendo alegre y feliz';
+        if (response.sentiment == 'amor')
+          message = 'Seguir amandote y mostrando amor';
+        if (response.sentiment == 'tristeza')
+          message = 'Mantener tu mente ocupada para evitar la tristeza';
+        if (response.sentiment == 'ira')
+          message = 'Mantener la calma, respirar profundo y evaluar la situación que estas pasando';
+        if (response.sentiment == 'miedo')
+          message = 'Se muy valiente, decidete y arriesga sin miedo'
+        if (response.sentiment == 'sorpresa')
+          message = 'Disfrutar tu momento';
+        $('#content').append('<p>Hola <strong>' + name + '</strong> el sentimiento que expresaste es: <span style="font-style: italic;">' +
+        sentiment + '</span> ,el cual indica que sientes <strong>' + response.sentiment + '</strong></p>')
+        $('#content').append('<p><strong>Te recomendamos: </strong> ' + message + '</p>');
+      },
+      error: function (xhr, status, error) {
+        console.error('Request failed: ' + error);
+      }
+    });
+
+  }
+
+</script>
+\<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
+
 </html>

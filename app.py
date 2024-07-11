@@ -1,9 +1,19 @@
-from flask import Flask, render_template, request
+# run: 'pip install sentencepiece' before run app
+
+from flask import Flask, render_template, request, jsonify
 import torch
-from transformers import BertTokenizer, BertForSequenceClassification
+from transformers import BertTokenizer, BertForSequenceClassification, MarianMTModel, MarianTokenizer
+import contractions
 from torch.utils.data import TensorDataset, DataLoader, SequentialSampler
+import warnings
+
+warnings.filterwarnings("ignore")
 
 app = Flask(__name__)
+
+model_name_en = 'Helsinki-NLP/opus-mt-es-en'
+tokenizer_en = MarianTokenizer.from_pretrained(model_name_en)
+model_en = MarianMTModel.from_pretrained(model_name_en)
 
 model = BertForSequenceClassification.from_pretrained('./model')
 tokenizer = BertTokenizer.from_pretrained('./model/tokenizer')
@@ -14,20 +24,24 @@ model.to(device)
 def home():
     return render_template('index.html')
 
-@app.route('/predict', methods=['POST'])
+@app.route('/sentiment-analysis', methods=['POST'])
 def predict():
     if request.method == 'POST':
         # Predict
-        inputs_request = [str(x) for x in request.form.values()]
-        print(f'request:', inputs_request)
-        predictions = predict_new_texts(inputs_request)
+        inputs_request = request.get_json()
+        print(f'request:', inputs_request['sentiment'])
+        translated_text = translate_to_english(inputs_request['sentiment']).replace('.', '')
+        without_contractions_text = expand_contractions(translated_text)
+        print(f'translated request:', [without_contractions_text])
+        predictions = predict_new_texts([without_contractions_text])
 
         # Load names for labels
         #label_names = ['sadness', 'joy', 'love', 'anger', 'fear', 'surprise']
         label_names = ['tristeza', 'alegría', 'amor', 'ira', 'miedo', 'sorpresa']
 
         predicted_labels = [label_names[pred] for pred in predictions]
-        return render_template('index.html', prediction_text=f'Usted siente: {predicted_labels[0]}')
+        #return render_template('index.html', prediction_text=f'Usted siente: {predicted_labels[0]}')
+        return jsonify({'sentiment': predicted_labels[0]})
 
 
 def encode(docs):
@@ -42,6 +56,7 @@ def encode(docs):
     input_ids = encoded_dict['input_ids']
     attention_masks = encoded_dict['attention_mask']
     return input_ids, attention_masks
+
 
 def predict_new_texts(new_texts):
     input_ids, attention_masks = encode(new_texts)
@@ -65,6 +80,18 @@ def predict_new_texts(new_texts):
             predictions.extend(preds.cpu().numpy())
 
     return predictions
+
+
+def translate_to_english(text):
+    inputs = tokenizer_en(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+    translated = model_en.generate(**inputs)
+    translated_text = tokenizer_en.decode(translated[0], skip_special_tokens=True)
+    return translated_text
+
+
+# Expandir contracciones
+def expand_contractions(text):
+    return contractions.fix(text)
 
 
 if __name__ == '__main__':
